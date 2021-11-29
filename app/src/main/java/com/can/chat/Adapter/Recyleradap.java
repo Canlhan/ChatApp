@@ -49,7 +49,7 @@ public class Recyleradap  extends RecyclerView.Adapter<Recyleradap.Recyholder>
 
        holder.binding.textmessage.setText(users.get(position).message);
        holder.binding.textuser.setText(users.get(position).name);
-        System.out.println("adapter data SİZE : "+ users.size());
+
 
 
 

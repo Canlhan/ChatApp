@@ -7,19 +7,29 @@
         <deviceKey>
           <Key>
             <type value="VIRTUAL_DEVICE_PATH" />
-            <value value="C:\Users\ilhan\.android\avd\Pixel_3a_API_30.avd" />
+            <value value="C:\Users\ilhan\.android\avd\iso.avd" />
           </Key>
         </deviceKey>
       </Target>
     </targetSelectedWithDropDown>
-    <timeTargetWasSelectedWithDropDown value="2021-11-27T12:12:48.876238200Z" />
+    <timeTargetWasSelectedWithDropDown value="2021-11-29T08:27:32.173147700Z" />
+    <multipleDevicesSelectedInDropDown value="true" />
     <targetsSelectedWithDialog>
       <Target>
         <type value="QUICK_BOOT_TARGET" />
         <deviceKey>
           <Key>
             <type value="VIRTUAL_DEVICE_PATH" />
-            <value value="C:\Users\ilhan\.android\avd\karsitel.avd" />
+            <value value="C:\Users\ilhan\.android\avd\Can_1.avd" />
+          </Key>
+        </deviceKey>
+      </Target>
+      <Target>
+        <type value="QUICK_BOOT_TARGET" />
+        <deviceKey>
+          <Key>
+            <type value="VIRTUAL_DEVICE_PATH" />
+            <value value="C:\Users\ilhan\.android\avd\iso_1.avd" />
           </Key>
         </deviceKey>
       </Target>
