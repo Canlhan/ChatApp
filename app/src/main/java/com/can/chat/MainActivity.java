@@ -1,5 +1,7 @@
 package com.can.chat;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,6 +13,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Debug;
 import android.view.View;
 import android.view.autofill.AutofillValue;
@@ -46,6 +49,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class MainActivity extends AppCompatActivity  {
     private ActivityMainBinding binding;
@@ -54,8 +59,9 @@ public class MainActivity extends AppCompatActivity  {
     private FirebaseAuth auth;
     private FirebaseUser user;
     Recyleradap adapter;
-    User userme;
-    private  ArrayList<String> userKimlik=new ArrayList<>();
+
+    private IData getData;
+
 
 
     private static final String ONESIGNAL_APP_ID = "1a15c98e-b31a-449c-91a6-e0fde5198130";
@@ -71,7 +77,7 @@ public class MainActivity extends AppCompatActivity  {
         binding=ActivityMainBinding.inflate(getLayoutInflater());
         View view=binding.getRoot();
         setContentView(view);
-
+        getData=new Getdata();
 
         auth=FirebaseAuth.getInstance();
         firestore=FirebaseFirestore.getInstance();
@@ -88,8 +94,6 @@ public class MainActivity extends AppCompatActivity  {
 
 
 
-        getDataFromFirestore();
-        // Enable verbose OneSignal logging to debug issues if needed.
 
         // OneSignal Initialization
         OneSignal.initWithContext(this);
@@ -97,60 +101,20 @@ public class MainActivity extends AppCompatActivity  {
         String us=OneSignal.getDeviceState().getUserId();
 
 
+        getData.getDataFromFirestore(users,binding,adapter);
 
 
+        getData.addToDbUserDeviceId(this,us);
 
-
-
-        HashMap<String,String > userIds=new HashMap<>();
-        UUID uu=UUID.randomUUID();
-        userIds.put("userId",us);
-
-        CollectionReference reference=firestore.collection("Player");
-
-
-            System.out.println("metoda girdi");
-            reference.addSnapshotListener(new EventListener<QuerySnapshot>() {
-                @Override
-                public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                    if(error!=null){
-                        Toast.makeText(MainActivity.this, " id hata", Toast.LENGTH_SHORT).show();
-                    }
-
-                    if(value!=null){
-
-                        ArrayList<String> userId =new ArrayList<>();
-                        for(DocumentSnapshot snapshot:value.getDocuments()){
-                            Map<String, Object> userid= snapshot.getData();
-                            String Id= (String)userid.get("userId");
-                            userId.add(Id);
-
-                            System.out.println(" reference addsnopshot user id: "+userId.size());
-
-                        }
-                        if(!userId.contains(us)){
-                            reference.add(userIds);
-                        }
-                    }
-                }
-
-            });
         }
-
-
-
-
-
-
-
-
 
 
 
     public  void sendMessage(View view)
     {
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-        final boolean[] messageControl = {true};
+
         String message=binding.editmessage.getText().toString();
          binding.editmessage.setText("");
          user=auth.getCurrentUser();
@@ -165,124 +129,34 @@ public class MainActivity extends AppCompatActivity  {
         mesajlar.put("date", FieldValue.serverTimestamp());
 
 
-        todb(mesajlar);
+        getData.todb(mesajlar);
 
-        getDataFromFirestore();
+        getData.getDataFromFirestore(users,binding,adapter);
 
         //onesignal
 
-        CollectionReference reference=firestore.collection("Player");
+       getData.pushNotification(this,message);
 
 
-        System.out.println("metoda girdi");
-        reference.addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                if(error!=null){
-                    Toast.makeText(MainActivity.this, " id hata", Toast.LENGTH_SHORT).show();
-                }
+        new CountDownTimer(6000, 1000) {
 
-                if(value!=null){
+            public void onTick(long millisUntilFinished) {
+                binding.sendbtn.setVisibility(View.INVISIBLE);
 
 
-                    for(DocumentSnapshot snapshot:value.getDocuments()){
-                        Map<String, Object> userid= snapshot.getData();
-                         String Id= (String)userid.get("userId");
-                        //userId.add(Id);
-
-
-                        if(!OneSignal.getDeviceState().getUserId().equals(Id)){
-                            try {
-
-                                System.out.println(" sendmessages: "+Id);
-                                OneSignal.postNotification(
-                                        new JSONObject("{'contents': {'en':'"+message+"'},'include_player_ids': ['"+Id+"']}") ,null);
-
-
-
-
-
-
-                            }catch (Exception e){
-
-                            }
-                        }
-
-
-
-
-
-
-
-
-
-                    }
-
-
-                }
             }
 
-        });
+            public void onFinish() {
+                binding.sendbtn.setVisibility(View.VISIBLE);
+            }
+        }.start();
+
+
+
 
 
 
     }
 
-
-
-
-    private  void todb(HashMap<String, Object> messages){
-        firestore.collection("Messages")
-                .add(messages).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-            @Override
-            public void onSuccess(DocumentReference documentReference) {
-                System.out.println("eklendi");
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-
-            }
-        });
-    }
-
-    private void getDataFromFirestore(){
-        CollectionReference reference=firestore.collection("Messages");
-
-
-
-        reference.orderBy("date", Query.Direction.ASCENDING).addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                users.clear();
-                for(DocumentSnapshot snapshot:value.getDocuments()){
-
-                    Map<String,Object> data=snapshot.getData();
-
-                    String email= (String) data.get("email");
-                    String message=(String) data.get("mesaj");
-
-                    User user1=new User(email,message);
-                    users.add(user1);
-                    binding.recyclerView.smoothScrollToPosition(users.size()-1);
-                    adapter.notifyDataSetChanged();
-
-
-
-
-                }
-
-            }
-        });
-
-
-    }
-
-    private ArrayList<String> getUserIdFromDatabase(String player){
-
-        return null;
-
-
-    }
 
 }
